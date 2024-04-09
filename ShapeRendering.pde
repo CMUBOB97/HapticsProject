@@ -1,11 +1,12 @@
 /**
  ****************************************************************************
- * @file    ProcessingTemplate 
- * @author  mortamar@andrew.cmu.edu
+ * @file    ShapeRendering
+ * @author  chigandrew.cmu.edu
  * @version 1.0
- * @date    Feburary-2020
- * @brief   This example is used to receive the cursor position from Haplink
- *           1-DOF and display it as a small circle on the screen.
+ * @date    April-2024
+ * @brief   This is the main Processing pipeline to
+            render the geometry and send rendering signal
+            to STM32.
  ****************************************************************************
  */
 
@@ -16,31 +17,28 @@ int windowwidth = 800;
 final int LINE = 1;
 final int PARABOLA = 2;
 
-int cursorX = 0; // X position in pixels
-int cursorY = 0; // Y position in pixels
-int boxXmin = 0; // X position of box in pixels
-int boxXmax = 0; // X position of box in pixels
-int boxYmin = 0; // Y position of box in pixels
-int boxYmax = 0; // Y position of box in pixels
-
 int cursorSize = 20; //size of the Haplink cursor in pixels
-float cursorX_mm = 0; //X position in mm
-float cursorY_mm = 0; //Y position in mm
 
-// box dimensions
-float boxXcenter_mm = -36.327652;
-float boxYcenter_mm = 142.337051;
-float boxlength_mm = 20.0;
-float boxXmin_mm = boxXcenter_mm - boxlength_mm / 2; // X position of box in mm
-float boxXmax_mm = boxXcenter_mm + boxlength_mm / 2; // X position of box in mm
-float boxYmin_mm = boxYcenter_mm - boxlength_mm / 2; // Y position of box in mm
-float boxYmax_mm = boxYcenter_mm + boxlength_mm / 2; // Y position of box in mm
+// record square dimensions here
+final int SQUARE_X_MIN = 200;
+final int SQUARE_X_MAX = 400;
+final int SQUARE_Y_MIN = 200;
+final int SQUARE_Y_MAX = 400;
 
-// record which way it enters the wall
-int contact_made = 0;
+// check the current environment rendering status
+boolean render_on = false;
 
-int sayHiForFirstTime = 0;
+// check the current acknowledgement from STM32
+boolean data_received = false;
 
+// helper function to check if the cursor is in the box
+boolean check_in_box() {
+  boolean x_in = (mouseX >= SQUARE_X_MIN) && (mouseX <= SQUARE_X_MAX);
+  boolean y_in = (mouseY >= SQUARE_Y_MIN) && (mouseY <= SQUARE_Y_MAX);
+  return x_in && y_in;
+}
+
+// setup phase for communication and shape selection
 void setup()
 {
   size(800, 800); //make our canvas 800 x 800 pixels big
@@ -48,51 +46,19 @@ void setup()
   setupShape(); // shape selection interface
 }
 
-
 void draw() 
 {
   background(255,255,255);
   
-  if (myPort != null)
-  {
-    //say hi to Nucleo
-    if (sayHiForFirstTime ==0)
-    {
-      myPort.write("1l");
-      sayHiForFirstTime = 1;
-    }
- 
-    //request Data
-    myPort.write("3l"); //send message to request data from Nucleo
-
-    //check if data is available:
-    if (myPort.available() > 0) 
-    {
-      // If data is available, and have received all of it!
-      messageSize = myPort.readBytes(messageBuffer);
-    
-      //if message isn't empty:
-      if (messageSize > 0)
-      {
-         String messageString = new String(messageBuffer);
-         //split the message into values
-         vals = float(splitTokens(messageString, "\t"));
-         
-         //TBD: do we need data from STM32?
-         
-         //just received data, send acknowledgment:
-         myPort.write("1l");
-      }
-   
-    } 
-
-    // ----> draw your virtual environment here!
+  // if USB serial is connected
+  if (myPort != null) {
     
     // case on shape rendered
     switch(shape_list[shape_selected]) {
       case LINE:
         stroke(0);
-        line(200, 200, 600, 600);
+        fill(17, 149, 255);
+        square(200, 200, 200);
         break;
       case PARABOLA:
         stroke(0);
@@ -110,13 +76,52 @@ void draw()
     fill(0);
     ellipse(mouseX, mouseY, 2, 2);
     
-    //Don't edit past here
-  }
-  else
-  {
+    // check if mouse is in the box
+    boolean is_in_box = check_in_box();
+    
+    // check if STM32 requested to turn on
+    if (data_received) {
+      //draw the lines in black
+      stroke(0);
+      //draw indicator as a ball
+      fill(255, 114, 51); 
+      ellipse(600, 600, cursorSize, cursorSize);
+    }
+    
+    // if enter the box the first time, send turn on rendering message
+    if (render_on == false && is_in_box == true) {
+      myPort.write("u");
+      render_on = true;
+    }
+    // if exit the box the first time, send turn off rendering message
+    if (render_on == true && is_in_box == false) {
+      myPort.write("d");
+      render_on = false;
+    }
+    
+    //check if data is available on serial:
+    if (myPort.available() > 0) 
+    {
+      
+      // check message received from STM32
+      messageSize = myPort.readBytes(messageBuffer);
+      
+      //if message isn't empty:
+      if (messageSize > 0)
+      {
+        String messageString = new String(messageBuffer);
+        
+        // check to render a smaller box indicating acknowledgement
+        if (messageString.charAt(0) == '1') {
+          data_received = true;
+        } else {
+          data_received = false;
+        }
+      }
+    }
+  } else {
      DrawSelectionButtons();
      DrawShapeButtons();
-     sayHiForFirstTime=0; 
   }
 }
 //EOF
