@@ -95,7 +95,6 @@ void mousePressed() {
   if (btn_serial_connect.MouseIsOver()) {
     if (myPort == null) {
       theta = int(theta_s);
-      print(theta);
       // connect to the selected serial port
       myPort = new Serial(this, Serial.list()[serial_list_index], 9600);
       portInfo = " - Conn";
@@ -120,8 +119,18 @@ void mousePressed() {
 }
 
 void keyPressed() {
-  if(int(key) >= 48 && int(key) <= 57) {
+  // if key is number, type on screen
+  if(int(key) >= 48 && int(key) <= 57 || key == '-') {
     angle.Type(str(key));
+  }
+  
+  // reset the serial com if 'r' is pressed
+  if (key == 'r') {
+    myPort.stop();
+    myPort = null;
+    println("Stopped COM");
+    portInfo = " - Disconn";
+    theta_s = "";
   }
 }
 

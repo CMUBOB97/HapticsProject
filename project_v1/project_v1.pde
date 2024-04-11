@@ -8,16 +8,12 @@
  ****************************************************************************
  */
 
-
-int windowHeight = 800; //these have to match the window width and length declared in size
-int windowWidth = 1200;
-
-int cursorSize = 20; //size of the Haplink cursor in pixels
+int cursorSize = 10; //size of the cursor in pixels
 
 int h = 500;
 float x1, y1, x2, y2;
 float m, b;
-float delta = 2;
+float DELTA = 2; // tolerance around line that constitutes a collision
 float dist;
 float theta_r;
 
@@ -25,7 +21,7 @@ boolean collision = false;
 
 void setup()
 {
-  size(windowWidth, windowHeight); //make our canvas 800 x 800 pixels big
+  size(1200, 800);
   setupCom();
   
 }
@@ -47,8 +43,15 @@ if (myPort != null)
   ellipse(mouseX, mouseY, 2, 2);
 
   theta_r = theta*PI/180;
+  
+  y1 = 200;
+  if(theta < 0) {
+    y1 = 600;
+  }
+  if(theta == 0){
+    y1 = 400;
+  }
   x1 = 500;
-  y1 = 100;
   x2 = x1 + round(h*cos(theta_r));
   y2 = y1 + round(h*sin(theta_r));
   m = sin(theta_r)/cos(theta_r);
@@ -62,14 +65,14 @@ if (myPort != null)
     yi = m*xi + b;
     dist = abs(sqrt(sq(xi-mouseX)+sq(yi-mouseY)));
     
-    if(dist <= delta){
+    if(dist <= DELTA){
       if(collision != true) {
         collision = true;
         //send update
         myPort.write("u");
       }
     }
-    if(dist > delta) {
+    if(dist > DELTA) {
       if(collision == true) { 
         collision = false;
         //send update
