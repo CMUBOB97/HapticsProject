@@ -74,32 +74,26 @@ if (myPort != null)
       if(dist <= DELTA){
         collision = true;
       }
-      //if(dist > DELTA && !collision) {
-      //  collision = false;
-      //}
+
       xi = xi + (x2-x1)/201;
       
       i = i +1;
-    }    
+    } // while  
   
     if(collision && !collision_old) {
       //send update
-      //myPort.write("u");
+      myPort.write("u");
       line_color = color(255, 0, 0);
-      println("arrived");
     }
     
     if(!collision && collision_old) { 
       //send update
-      //myPort.write("d");
+      myPort.write("d");
       line_color = color(0, 0, 0);
-      println("gone");
     }
     collision_old = collision;
     collision = false;  
  
-    
-
   }
   else
   {
