@@ -18,6 +18,9 @@ float dist;
 float theta_r;
 
 boolean collision = false;
+boolean collision_old = false;
+
+color line_color;
 
 void setup()
 {
@@ -56,31 +59,45 @@ if (myPort != null)
   y2 = y1 + round(h*sin(theta_r));
   m = sin(theta_r)/cos(theta_r);
   b = y1 - m*x1;
+  stroke(line_color);
   line(x1, y1, x2, y2);
   
   float xi = x1;
   float yi;
-  
-  for(int i = 0; i < 201; i = i +1){
-    yi = m*xi + b;
-    dist = abs(sqrt(sq(xi-mouseX)+sq(yi-mouseY)));
-    
-    if(dist <= DELTA){
-      if(collision != true) {
+
+    int i = 0;
+    collision = false;
+    while(i < 201){
+      yi = m*xi + b;
+      dist = abs(sqrt(sq(xi-mouseX)+sq(yi-mouseY)));
+      
+      if(dist <= DELTA){
         collision = true;
-        //send update
-        myPort.write("u");
       }
+      //if(dist > DELTA && !collision) {
+      //  collision = false;
+      //}
+      xi = xi + (x2-x1)/201;
+      
+      i = i +1;
+    }    
+  
+    if(collision && !collision_old) {
+      //send update
+      //myPort.write("u");
+      line_color = color(255, 0, 0);
+      println("arrived");
     }
-    if(dist > DELTA) {
-      if(collision == true) { 
-        collision = false;
-        //send update
-        myPort.write("d");
-      }
+    
+    if(!collision && collision_old) { 
+      //send update
+      //myPort.write("d");
+      line_color = color(0, 0, 0);
+      println("gone");
     }
-    xi = xi + (x2-x1)/201;
-  }    
+    collision_old = collision;
+    collision = false;  
+ 
     
 
   }
